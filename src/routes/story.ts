@@ -18,21 +18,30 @@ const router = express.Router();
 
 router.get("/", verifyToken, async (req: Request, res: Response) => {
   try {
-    const pageSize = 10;
-    const page = Number(req.query.pageNumber) || 1;
-    const keyword = req.query.keyword
-      ? {
-          username: {
-            $regex: req.query.keyword,
-            $options: "i",
-          },
-        }
-      : {};
-    const count = await Story.countDocuments({ ...keyword });
-    const stories = await Story.find({ ...keyword })
-      .limit(pageSize)
-      .skip(pageSize * (page - 1));
-    res.json({ data: stories, page, pages: Math.ceil(count / pageSize) });
+    const id = req.query.id;
+    if (id) {
+      const story = await Story.findById(id);
+      if (!story) {
+        return res.status(404).json({ message: "Story not found" });
+      }
+      return res.json({ story });
+    } else {
+      const pageSize = 10;
+      const page = Number(req.query.pageNumber) || 1;
+      const keyword = req.query.keyword
+        ? {
+            username: {
+              $regex: req.query.keyword,
+              $options: "i",
+            },
+          }
+        : {};
+      const count = await Story.countDocuments({ ...keyword });
+      const stories = await Story.find({ ...keyword })
+        .limit(pageSize)
+        .skip(pageSize * (page - 1));
+      res.json({ data: stories, page, pages: Math.ceil(count / pageSize) });
+    }
   } catch (err) {
     console.log("🚀 ~ err:", err);
   }
@@ -43,12 +52,9 @@ router.post(
   verifyToken,
   upload.single("coverImage"),
   [
-    check("story", "Story is required").not().isEmpty(),
     check("title", "Title is required").not().isEmpty(),
     check("description", "Description is required").not().isEmpty(),
     check("author", "Author is required").not().isEmpty(),
-    check("categories", "Categories are required").not().isEmpty(),
-    check("tags", "Tags are required").not().isEmpty(),
   ],
   async (req: Request, res: Response) => {
     const errors = validationResult(req);
@@ -58,7 +64,7 @@ router.post(
     }
 
     try {
-      const { story, title, description, author, categories, tags, chapters } =
+      const { title, description, author, categories, tags, chapters } =
         req.body;
       let coverImageUrl: string | undefined = undefined;
       if (req.file) {
@@ -67,7 +73,6 @@ router.post(
         coverImageUrl = imageUrls[0];
       }
       const newStory = new Story({
-        story,
         title,
         description,
         author,

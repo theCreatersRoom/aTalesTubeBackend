@@ -44,8 +44,11 @@ router.post(
 
       const salt = await bcrypt.genSalt(10);
       const passwordHash = await bcrypt.hash(password, salt);
-      const imageUrls = await uploadImages([profile]);
-      const profilePicture = imageUrls[0];
+      let profilePicture: string | undefined = undefined;
+      if (req.file) {
+        const imageUrls = await uploadImages([profile]);
+        profilePicture = imageUrls[0];
+      }
       const newUser = new User({
         username,
         email,
@@ -61,7 +64,12 @@ router.post(
         { userId: savedUser._id },
         process.env.JWT_SECRET_KEY as string
       );
-      res.status(200).json({ token });
+      res
+        .status(200)
+        .json({
+          token,
+          user: { ...newUser.toJSON(), passwordHash: undefined },
+        });
     } catch (err) {
       console.log("🚀 ~ err:", err);
       return res.status(500).json({ message: "Something went wrong" });
@@ -71,21 +79,32 @@ router.post(
 
 router.get("/", verifyToken, async (req: Request, res: Response) => {
   try {
-    const pageSize = 10;
-    const page = Number(req.query.pageNumber) || 1;
-    const keyword = req.query.keyword
-      ? {
-          username: {
-            $regex: req.query.keyword,
-            $options: "i",
-          },
-        }
-      : {};
-    const count = await User.countDocuments({ ...keyword });
-    const users = await User.find({ ...keyword })
-      .limit(pageSize)
-      .skip(pageSize * (page - 1));
-    res.json({ users, page, pages: Math.ceil(count / pageSize) });
+    const token = req.headers["authorization"]?.split(" ")[1];
+    const { userId } = jwt.verify(
+      token || "",
+      process.env.JWT_SECRET_KEY as string
+    ) as any;
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({ ...user.toJSON(), passwordHash: undefined });
+    // const pageSize = 10;
+    // const page = Number(req.query.pageNumber) || 1;
+    // const keyword = req.query.keyword
+    //   ? {
+    //       username: {
+    //         $regex: req.query.keyword,
+    //         $options: "i",
+    //       },
+    //     }
+    //   : {};
+    // const count = await User.countDocuments({ ...keyword });
+    // const users = await User.find({ ...keyword })
+    //   .limit(pageSize)
+    //   .skip(pageSize * (page - 1));
+    // res.json({ users, page, pages: Math.ceil(count / pageSize) });
   } catch (err) {
     console.log("🚀 ~ err:", err);
   }

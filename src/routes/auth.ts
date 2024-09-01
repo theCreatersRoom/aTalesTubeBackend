@@ -6,7 +6,7 @@ import jwt from "jsonwebtoken";
 
 const router = express.Router();
 
-router.get(
+router.post(
   "/login",
   [
     check("email", "Email is required").isEmail(),

@@ -69,6 +69,7 @@ router.post(
         description: title,
         order: story.chapters.length + 1,
       });
+      story.save();
       const savedChapter = await newChapter.save();
       res.json(savedChapter);
     } catch (err) {

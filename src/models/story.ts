@@ -19,12 +19,12 @@ type StoryType = {
 };
 
 const storySchema = new mongoose.Schema<StoryType>({
-  title: { type: String, required: true },
   description: { type: String, required: true },
   author: { type: String, required: true },
-  coverImage: { type: String, required: true },
-  categories: { type: [String], required: true },
-  tags: { type: [String], required: true },
+  title: { type: String, required: true },
+  coverImage: { type: String, required: false },
+  categories: { type: [String], required: false },
+  tags: { type: [String], required: false },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
   chapters: [
