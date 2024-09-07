@@ -5,6 +5,7 @@ type StoryType = {
   title: string;
   description: string;
   author: string;
+  authorName: string;
   coverImage: string;
   categories: string[];
   tags: string[];
@@ -21,6 +22,7 @@ type StoryType = {
 const storySchema = new mongoose.Schema<StoryType>({
   description: { type: String, required: true },
   author: { type: String, required: true },
+  authorName: { type: String, required: true },
   title: { type: String, required: true },
   coverImage: { type: String, required: false },
   categories: { type: [String], required: false },

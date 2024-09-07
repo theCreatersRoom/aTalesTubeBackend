@@ -47,6 +47,32 @@ router.get("/", verifyToken, async (req: Request, res: Response) => {
   }
 });
 
+router.get(
+  "/getStorysByUser",
+  verifyToken,
+  async (req: Request, res: Response) => {
+    try {
+      const { userId } = req.query;
+      if (!userId) {
+        return res.status(400).json({ message: "User id is required" });
+      }
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      const pageSize = 10;
+      const page = Number(req.query.pageNumber) || 1;
+      const count = await Story.countDocuments({ author: userId });
+      const stories = await Story.find({ author: userId })
+        .limit(pageSize)
+        .skip(pageSize * (page - 1));
+      res.json({ data: stories, page, pages: Math.ceil(count / pageSize) });
+    } catch (err) {
+      console.log("🚀 ~ err:", err);
+    }
+  }
+);
+
 router.post(
   "/newStory",
   verifyToken,
@@ -72,10 +98,16 @@ router.post(
         const imageUrls = await uploadImages([coverImage]);
         coverImageUrl = imageUrls[0];
       }
+      const user = await User.findById(author);
+
+      if (!user) {
+        return res.status(404).json({ message: "Something went wrong" });
+      }
       const newStory = new Story({
         title,
         description,
         author,
+        authorName: user.username,
         categories,
         tags,
         chapters,
