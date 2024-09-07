@@ -79,6 +79,50 @@ router.post(
   }
 );
 
+// this will update chapter
+router.post(
+  "/updateChapter",
+  verifyToken,
+  upload.single("media"),
+  [
+    check("chapterId", "Chapter id is required").not().isEmpty(),
+    check("title", "Title is required").not().isEmpty(),
+    check("content", "Content is required").not().isEmpty(),
+  ],
+  async (req: express.Request, res: express.Response) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    try {
+      const { chapterId, title, content } = req.body;
+      const chapter = await Chapter.findById(chapterId);
+      if (!chapter) {
+        return res.status(404).json({ message: "Chapter not found" });
+      }
+      chapter.title = title;
+      chapter.content = content;
+      const savedChapter = await chapter.save();
+      const story = await Story.findById(chapter.storyId);
+      if (!story) {
+        return res.status(404).json({ message: "Story not found" });
+      }
+      story.chapters = story.chapters.map((chapter) => {
+        if (chapter.chapterId === chapterId) {
+          chapter.title = title;
+          chapter.description = title;
+        }
+        return chapter;
+      });
+      story.save();
+      res.json(savedChapter);
+    } catch (err) {
+      console.log("🚀 ~ err:", err);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  }
+);
+
 // this will delete chapter from story
 router.delete(
   "/deleteChapter",
